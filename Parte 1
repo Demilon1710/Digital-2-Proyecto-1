@@ -1,0 +1,75 @@
+//******************************************/
+// Universidad del Valle de Guatemala
+// BE3029 - Electronica Digital 2
+// Javier de León
+// 18/08/2025
+// Proyecto 1
+// MCU: ESP32 dev kit 1.0
+//******************************************/
+//******************************************/
+// Librerias
+//******************************************/
+#include <Arduino.h>
+#include <stdint.h>
+//#include "config.h"
+//******************************************/
+// Definiciones
+//******************************************/
+#define LM35PIN 34
+#define BTN1 13
+#define antiBounce 200 //Milisegundos para antirrebote
+//******************************************/
+// Prototipos de funciones
+//******************************************/
+void getTemp(void);
+void initBTN1(void);
+void IRAM_ATTR BTN1_ISR(void); //Funciones para interrupciones de los botones
+//******************************************/
+// Variables globales
+//******************************************/
+float temperatura;
+volatile bool btn1ON; //Variable booleana para marcar que se presionó el botón.
+volatile int32_t lastISRbtn1 = 0; //Última presionada del botón.
+//******************************************/
+// ISRs Rutinas de Interrupcion
+//******************************************/
+void IRAM_ATTR BTN1_ISR(void){ //Función que permite el antirrebote.
+  uint32_t tiempoActual = millis(); //Millis permite contar el tiempo desde el inicio del programa.
+  if(tiempoActual - lastISRbtn1 > antiBounce){ //Ciclo if para sumar al contador si se cumplen las condiciones del interruptor 1
+  btn1ON = true;
+  lastISRbtn1 = tiempoActual;
+  }
+}
+//******************************************/
+// Configuracion
+//******************************************/
+void setup() {
+// put your setup code here, to run once:
+Serial.begin(115200);
+initBTN1();  //Llamar a la función para inicializar los botones.
+}
+//******************************************/
+// Loop Principal
+//******************************************/
+void loop() {
+// put your main code here, to run repeatedly:
+
+if(btn1ON){
+  getTemp();
+  Serial.println(temperatura);
+  btn1ON = false;
+}
+}
+//******************************************/
+// Otras funciones
+//******************************************/
+void getTemp(void){
+    int adc = analogRead(LM35PIN);
+    float voltaje = adc*(3.3/4095);
+    temperatura = voltaje*100;
+}
+void initBTN1(void){
+  //Funciones para denominar a los botones con su tipo de entrada y su interruptor.
+  pinMode(BTN1, INPUT_PULLUP);
+  attachInterrupt(BTN1, &BTN1_ISR, FALLING); //Se indica el pin del botón, su función de interrupción y el tipo de señal donde se interrumpe.
+}
