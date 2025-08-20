@@ -15,18 +15,32 @@
 //******************************************/
 // Definiciones
 //******************************************/
-#define LM35PIN 34
-#define BTN1 13
+#define LM35PIN 34 //Pin para el LM35
+#define BTN1 13 //Pin para el botón
 #define antiBounce 200 //Milisegundos para antirrebote
+#define LEDB 15 //Led azul 
+#define LEDY 2 //Led amarillo 
+#define LEDR 18 //Led rojo 
+//Nombres y valores iniciales para los PWMs
+#define pwmB 0
+#define pwmY 1
+#define pwmR 2
+//Valor para la frecuencia de PWM
+#define freqPWM 50
+//Valor para la resolución de PWM
+#define resPWM 12
 //******************************************/
 // Prototipos de funciones
 //******************************************/
-void getTemp(void);
 void initBTN1(void);
 void IRAM_ATTR BTN1_ISR(void); //Funciones para interrupciones de los botones
+void initPWMB(void);
+void initPWMY(void);
+void initPWMR(void);
 //******************************************/
 // Variables globales
 //******************************************/
+uint32_t dutyCycle = 0;
 float temperatura;
 volatile bool btn1ON; //Variable booleana para marcar que se presionó el botón.
 volatile int32_t lastISRbtn1 = 0; //Última presionada del botón.
@@ -47,29 +61,63 @@ void setup() {
 // put your setup code here, to run once:
 Serial.begin(115200);
 initBTN1();  //Llamar a la función para inicializar los botones.
+initPWMB(); //Llamar funciones para inicializar los PWMs
+initPWMY();
+initPWMR();
 }
 //******************************************/
 // Loop Principal
 //******************************************/
 void loop() {
 // put your main code here, to run repeatedly:
+int adc = analogRead(LM35PIN);
+float voltaje = adc*(3.3/4095);
+temperatura = voltaje*100;
 
 if(btn1ON){
-  getTemp();
   Serial.println(temperatura);
   btn1ON = false;
+}
+if(temperatura < 18){ //Se utilizaron valores cercanos a 18 y 20 debido a que para alcanzar 25 como se nos pide requiere mucho tiempo
+                      //para calentar al tacto el sensor.
+  ledcWrite(pwmB, 2000);
+  ledcWrite(pwmY, 0);
+  ledcWrite(pwmR, 0);
+}
+if(temperatura > 18 && temperatura < 20){
+  ledcWrite(pwmB, 0);
+  ledcWrite(pwmY, 2000);
+  ledcWrite(pwmR, 0);
+}
+if(temperatura > 20){
+  ledcWrite(pwmB, 0);
+  ledcWrite(pwmY, 0);
+  ledcWrite(pwmR, 2000);
 }
 }
 //******************************************/
 // Otras funciones
 //******************************************/
-void getTemp(void){
-    int adc = analogRead(LM35PIN);
-    float voltaje = adc*(3.3/4095);
-    temperatura = voltaje*100;
-}
+
+//Se quitó la función de getTemp porque se quiere que la variable "temperatura" esté presente para el programa constantemente, no solo cuando se imprime.
 void initBTN1(void){
   //Funciones para denominar a los botones con su tipo de entrada y su interruptor.
   pinMode(BTN1, INPUT_PULLUP);
   attachInterrupt(BTN1, &BTN1_ISR, FALLING); //Se indica el pin del botón, su función de interrupción y el tipo de señal donde se interrumpe.
+}
+//Funciones para generar los PWMs
+void initPWMB(void){
+  ledcSetup(pwmB, freqPWM, resPWM);
+  ledcAttachPin(LEDB, pwmB);
+  ledcWrite(pwmB, 0);
+}
+void initPWMY(void){
+  ledcSetup(pwmY, freqPWM, resPWM);
+  ledcAttachPin(LEDY, pwmY);
+  ledcWrite(pwmY, 0);
+}
+void initPWMR(void){
+  ledcSetup(pwmR, freqPWM, resPWM);
+  ledcAttachPin(LEDR, pwmR);
+  ledcWrite(pwmR, 0);
 }
