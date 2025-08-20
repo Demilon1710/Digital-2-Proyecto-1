@@ -11,6 +11,7 @@
 //******************************************/
 #include <Arduino.h>
 #include <stdint.h>
+#include<driver/ledc.h>
 //#include "config.h"
 //******************************************/
 // Definiciones
@@ -21,10 +22,12 @@
 #define LEDB 15 //Led azul 
 #define LEDY 2 //Led amarillo 
 #define LEDR 18 //Led rojo 
+#define servo 21
 //Nombres y valores iniciales para los PWMs
 #define pwmB 0
 #define pwmY 1
 #define pwmR 2
+#define pwmS 3
 //Valor para la frecuencia de PWM
 #define freqPWM 50
 //Valor para la resolución de PWM
@@ -37,6 +40,7 @@ void IRAM_ATTR BTN1_ISR(void); //Funciones para interrupciones de los botones
 void initPWMB(void);
 void initPWMY(void);
 void initPWMR(void);
+void initPWMS(void);
 //******************************************/
 // Variables globales
 //******************************************/
@@ -64,6 +68,7 @@ initBTN1();  //Llamar a la función para inicializar los botones.
 initPWMB(); //Llamar funciones para inicializar los PWMs
 initPWMY();
 initPWMR();
+initPWMS();
 }
 //******************************************/
 // Loop Principal
@@ -73,6 +78,16 @@ void loop() {
 int adc = analogRead(LM35PIN);
 float voltaje = adc*(3.3/4095);
 temperatura = voltaje*100;
+//Bloque para probar el funcionamiento del servo.
+//Se tuvo que conectar por separado a la fuente de voltaje VIN para que funcionara, en lugar de la de 3.3 V.
+/*ledcWrite(pwmS, 103);
+delay(1000);
+
+ledcWrite(pwmS, 307);
+delay(1000);
+
+ledcWrite(pwmS, 512);
+delay(1000);*/
 
 if(btn1ON){
   Serial.println(temperatura);
@@ -83,16 +98,27 @@ if(temperatura < 18){ //Se utilizaron valores cercanos a 18 y 20 debido a que pa
   ledcWrite(pwmB, 2000);
   ledcWrite(pwmY, 0);
   ledcWrite(pwmR, 0);
+  ledcWrite(pwmS, 103); //Utilizando la frecuencia seleccionada (50), se obtiene el tiempo en ms dividiendo 1/50.
+    //Sabiendo que el tiempo es 20 ms, y usando una resolución de 12 bits, se obtiene el ciclo de trabajo para 5 tiempos diferentes.
+    //Los 20 ms se dividen entre el valor de 2^12 = 4096, obteniendo 0.004882813 ms
+    //Para la primera posición se busca la posición a 0.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
+
 }
 if(temperatura > 18 && temperatura < 20){
   ledcWrite(pwmB, 0);
   ledcWrite(pwmY, 2000);
   ledcWrite(pwmR, 0);
+  ledcWrite(pwmS, 307);
+    //Para la segunda posición se busca la posición a 1.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
+
 }
 if(temperatura > 20){
   ledcWrite(pwmB, 0);
   ledcWrite(pwmY, 0);
   ledcWrite(pwmR, 2000);
+  ledcWrite(pwmS, 512);
+    //Para la tercera posición se busca la posición a 2.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
+
 }
 }
 //******************************************/
@@ -120,4 +146,9 @@ void initPWMR(void){
   ledcSetup(pwmR, freqPWM, resPWM);
   ledcAttachPin(LEDR, pwmR);
   ledcWrite(pwmR, 0);
+}
+void initPWMS(void){
+  ledcSetup(pwmS, freqPWM, resPWM);
+  ledcAttachPin(servo, pwmS);
+  ledcWrite(pwmS, 0);
 }
