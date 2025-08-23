@@ -12,6 +12,7 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include<driver/ledc.h>
+#include "display7.h"
 //#include "config.h"
 //******************************************/
 // Definiciones
@@ -21,8 +22,8 @@
 #define antiBounce 200 //Milisegundos para antirrebote
 #define LEDB 15 //Led azul 
 #define LEDY 2 //Led amarillo 
-#define LEDR 18 //Led rojo 
-#define servo 21
+#define LEDR 4 //Led rojo 
+#define servo 5
 //Nombres y valores iniciales para los PWMs
 #define pwmB 0
 #define pwmY 1
@@ -48,6 +49,10 @@ uint32_t dutyCycle = 0;
 float temperatura;
 volatile bool btn1ON; //Variable booleana para marcar que se presionó el botón.
 volatile int32_t lastISRbtn1 = 0; //Última presionada del botón.
+int temp;
+int unidad;
+int decena;
+int decimal;
 //******************************************/
 // ISRs Rutinas de Interrupcion
 //******************************************/
@@ -69,15 +74,28 @@ initPWMB(); //Llamar funciones para inicializar los PWMs
 initPWMY();
 initPWMR();
 initPWMS();
+configDisplay7();
+
+//Bloque para porbar el funcionamiento de los displays de 7 segmentos.
+/*digitalWrite(displaydecimal, HIGH);
+digitalWrite(displayunidad, HIGH);
+digitalWrite(displaydecena, HIGH);
+desplegarNumero(8);
+desplegarNumero(8);
+desplegarNumero(8);*/
+
+
 }
 //******************************************/
 // Loop Principal
 //******************************************/
 void loop() {
 // put your main code here, to run repeatedly:
+//Para utilizar el rango pedido por el proyecto, se actualizaó la fórmula para sumarle 12 grados que se perdían, de acuerdo al termostato del salón de laboratorio.
 int adc = analogRead(LM35PIN);
 float voltaje = adc*(3.3/4095);
-temperatura = voltaje*100;
+temperatura = (voltaje*100) + 12;
+
 //Bloque para probar el funcionamiento del servo.
 //Se tuvo que conectar por separado a la fuente de voltaje VIN para que funcionara, en lugar de la de 3.3 V.
 /*ledcWrite(pwmS, 103);
@@ -92,9 +110,13 @@ delay(1000);*/
 if(btn1ON){
   Serial.println(temperatura);
   btn1ON = false;
-}
-if(temperatura < 18){ //Se utilizaron valores cercanos a 18 y 20 debido a que para alcanzar 25 como se nos pide requiere mucho tiempo
-                      //para calentar al tacto el sensor.
+  temp = temperatura*10;
+  decena = temp/100;
+  temp = temp - (decena*100);
+  unidad = temp/10;
+  temp = temp - (unidad*10);
+  decimal = temp;
+  if(temperatura < 22){ 
   ledcWrite(pwmB, 2000);
   ledcWrite(pwmY, 0);
   ledcWrite(pwmR, 0);
@@ -104,7 +126,7 @@ if(temperatura < 18){ //Se utilizaron valores cercanos a 18 y 20 debido a que pa
     //Para la primera posición se busca la posición a 0.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
 
 }
-if(temperatura > 18 && temperatura < 20){
+if(temperatura > 22 && temperatura < 25){
   ledcWrite(pwmB, 0);
   ledcWrite(pwmY, 2000);
   ledcWrite(pwmR, 0);
@@ -112,7 +134,7 @@ if(temperatura > 18 && temperatura < 20){
     //Para la segunda posición se busca la posición a 1.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
 
 }
-if(temperatura > 20){
+if(temperatura > 25){
   ledcWrite(pwmB, 0);
   ledcWrite(pwmY, 0);
   ledcWrite(pwmR, 2000);
@@ -120,6 +142,31 @@ if(temperatura > 20){
     //Para la tercera posición se busca la posición a 2.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
 
 }
+
+
+}
+digitalWrite(displaydecena, LOW);
+digitalWrite(displayunidad, LOW);
+digitalWrite(displaydecimal, HIGH);
+desplegarNumero(decimal);
+desplegarPunto(0);
+delay(5);
+
+digitalWrite(displaydecena, LOW);
+digitalWrite(displayunidad, HIGH);
+digitalWrite(displaydecimal, LOW);
+desplegarNumero(unidad);
+desplegarPunto(1);
+delay(5);
+
+
+digitalWrite(displaydecena, HIGH);
+digitalWrite(displayunidad, LOW);
+digitalWrite(displaydecimal, LOW);
+desplegarNumero(decena);
+desplegarPunto(0);
+delay(5);
+
 }
 //******************************************/
 // Otras funciones
