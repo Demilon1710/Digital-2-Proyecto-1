@@ -45,15 +45,15 @@ void initPWMS(void);
 //******************************************/
 // Variables globales
 //******************************************/
-uint32_t dutyCycle = 0;
-float LM35;
+uint32_t dutyCycle = 0; //Valor inicial del ciclo de trabajo
+float LM35; //Variable float para tomar en cuenta valores decimales
 volatile bool btn1ON; //Variable booleana para marcar que se presionó el botón.
 volatile int32_t lastISRbtn1 = 0; //Última presionada del botón.
-int temp;
+int temp; //Variables enteras para obtener solo dígitos enteros
 int unidad;
 int decena;
 int decimal;
-float temperatura = 0.0;
+float temperatura = 0.0; //Valor inicial para el canal de adafruit de temperatura.
 
 //******************************************/
 // ISRs Rutinas de Interrupcion
@@ -65,7 +65,7 @@ void IRAM_ATTR BTN1_ISR(void){ //Función que permite el antirrebote.
   lastISRbtn1 = tiempoActual;
   }
 }
-AdafruitIO_Feed *tempCanal = io.feed("temperatura");
+AdafruitIO_Feed *tempCanal = io.feed("temperatura"); //Variable para el canal de temperatura de adafruit
 //******************************************/
 // Configuracion
 //******************************************/
@@ -77,7 +77,7 @@ initPWMB(); //Llamar funciones para inicializar los PWMs
 initPWMY();
 initPWMR();
 initPWMS();
-configDisplay7();
+configDisplay7(); //Llamar a la función de la librería de display7
 
 //Bloque para porbar el funcionamiento de los displays de 7 segmentos.
 /*digitalWrite(displaydecimal, HIGH);
@@ -87,21 +87,21 @@ desplegarNumero(8);
 desplegarNumero(8);
 desplegarNumero(8);*/
 
-// wait for serial monitor to open
+// Esperar a que se abra el monitor serial
   while(! Serial);
 
-  Serial.print("Connecting to Adafruit IO");
+  Serial.print("Connecting to Adafruit IO"); //Imprimir en el monitor hasta que conecte el adafruit
 
-  // connect to io.adafruit.com
+  // Función para conectar con el servidor de adafruit
   io.connect();
 
-  // wait for a connection
+  // Esperando la conexión
   while(io.status() < AIO_CONNECTED) {
     Serial.print(".");
     delay(500);
   }
 
-  // we are connected
+  // Imprimir al momento de conectarse al servidor
   Serial.println();
   Serial.println(io.statusText());
 
@@ -111,9 +111,10 @@ desplegarNumero(8);*/
 //******************************************/
 void loop() {
 // put your main code here, to run repeatedly:
-//Para utilizar el rango pedido por el proyecto, se actualizaó la fórmula para sumarle 12 grados que se perdían, de acuerdo al termostato del salón de laboratorio.
+//Para utilizar el rango pedido por el proyecto, se actualizaó la fórmula para sumarle 12 grados que se perdían, 
+//de acuerdo al termostato del salón de laboratorio.
 int adc = analogRead(LM35PIN);
-float voltaje = adc*(3.3/4095);
+float voltaje = adc*(3.3/4095); //Fórmula para cambiar la medida de voltaje a grados C°
 LM35 = (voltaje*100) + 12;
 //Bloque para probar el funcionamiento del servo.
 //Se tuvo que conectar por separado a la fuente de voltaje VIN para que funcionara, en lugar de la de 3.3 V.
@@ -126,6 +127,7 @@ delay(1000);
 ledcWrite(pwmS, 512);
 delay(1000);*/
 
+//Ciclo if para introducir las instrucciones de lo que se quiere hacer cada vez que se presione el botón
 if(btn1ON){
   Serial.println(LM35);
   btn1ON = false;
@@ -166,16 +168,15 @@ if(LM35 > 25){
 
 temperatura = LM35;
 
-// save count to the 'counter' feed on Adafruit IO
+// guardar el valor obtenido en el feed de adafruit
   Serial.print("sending -> ");
-  Serial.println(temperatura);
-  tempCanal->save(temperatura);
+  Serial.println(temperatura); 
+  tempCanal->save(temperatura); //temperatura es el nombre que se le dio al feed
 
 
-  // Adafruit IO is rate limited for publishing, so a delay is required in
-  // between feed->save events. In this example, we will wait three seconds
-  // (1000 milliseconds == 1 second) during each loop.
+  //No es necesario el delay debido a que se subirá el dato al momento de presionar el botón, no es continuo
   //delay(500);
+  io.run(); //Importante para que se quiera conectar al servidor de adafruit
 
 }
 
@@ -200,7 +201,6 @@ desplegarNumero(decena);
 desplegarPunto(0);
 delay(5); 
 
-io.run();
 
 }
 //******************************************/
