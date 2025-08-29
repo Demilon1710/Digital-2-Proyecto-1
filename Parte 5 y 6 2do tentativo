@@ -54,11 +54,7 @@ int unidad;
 int decena;
 int decimal;
 float temperatura = 0.0;
-unsigned long tiempoPrevio = 0;
-const int intervaloRefresco = 0; // ms
-int estadoDisplay = 0;
-int valorMostrado = 0;
-bool actualizarValor = false;
+
 //******************************************/
 // ISRs Rutinas de Interrupcion
 //******************************************/
@@ -183,55 +179,26 @@ temperatura = LM35;
 
 }
 
-/*digitalWrite(displaydecena, LOW);
+digitalWrite(displaydecena, LOW);
 digitalWrite(displayunidad, LOW);
 digitalWrite(displaydecimal, HIGH);
 desplegarNumero(decimal);
 desplegarPunto(0);
-delay(10);
+delay(5);
 
 digitalWrite(displaydecena, LOW);
 digitalWrite(displayunidad, HIGH);
 digitalWrite(displaydecimal, LOW);
 desplegarNumero(unidad);
 desplegarPunto(1);
-delay(10);
+delay(5);
 
 digitalWrite(displaydecena, HIGH);
 digitalWrite(displayunidad, LOW);
 digitalWrite(displaydecimal, LOW);
 desplegarNumero(decena);
 desplegarPunto(0);
-delay(5); */
-unsigned long tiempoActual = millis();
-  if (tiempoActual - tiempoPrevio >= intervaloRefresco) {
-    tiempoPrevio = tiempoActual;
-
-    // Apagar todos
-    digitalWrite(displaydecena, LOW);
-    digitalWrite(displayunidad, LOW);
-    digitalWrite(displaydecimal, LOW);
-
-    switch (estadoDisplay) {
-      case 0:
-        digitalWrite(displaydecena, HIGH);
-        desplegarNumero(decena);
-        desplegarPunto(0);
-        break;
-      case 1:
-        digitalWrite(displayunidad, HIGH);
-        desplegarNumero(unidad);
-        desplegarPunto(1); // Mostrar punto decimal
-        break;
-      case 2:
-        digitalWrite(displaydecimal, HIGH);
-        desplegarNumero(decimal);
-        desplegarPunto(0);
-        break;
-    }
-
-    estadoDisplay = (estadoDisplay + 1) % 3;
-  }
+delay(5); 
 
 io.run();
 
