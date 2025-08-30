@@ -12,8 +12,8 @@
 #include <Arduino.h>
 #include <stdint.h>
 #include<driver/ledc.h>
-#include "display7.h"
-#include "config.h"
+#include "display7.h" //Se incluye la librería creada para configurar las funciones que permiten el funcionamiento de los displays de 7 segmentos
+#include "config.h" //Se incluye la librería creada para conectar al router de interés y a los servidores de adafruit
 //******************************************/
 // Definiciones
 //******************************************/
@@ -23,7 +23,7 @@
 #define LEDB 15 //Led azul 
 #define LEDY 2 //Led amarillo 
 #define LEDR 4 //Led rojo 
-#define servo 5
+#define servo 5 //Pin que indica movimiento del servomotor
 //Nombres y valores iniciales para los PWMs
 #define pwmB 0
 #define pwmY 1
@@ -36,9 +36,9 @@
 //******************************************/
 // Prototipos de funciones
 //******************************************/
-void initBTN1(void);
-void IRAM_ATTR BTN1_ISR(void); //Funciones para interrupciones de los botones
-void initPWMB(void);
+void initBTN1(void); //Nombre de la función para inicializar el botón
+void IRAM_ATTR BTN1_ISR(void); //Función para interrupción del botón
+void initPWMB(void); //Nombre de las funciones para inicializar el PWMs
 void initPWMY(void);
 void initPWMR(void);
 void initPWMS(void);
@@ -79,14 +79,6 @@ initPWMR();
 initPWMS();
 configDisplay7(); //Llamar a la función de la librería de display7
 
-//Bloque para porbar el funcionamiento de los displays de 7 segmentos.
-/*digitalWrite(displaydecimal, HIGH);
-digitalWrite(displayunidad, HIGH);
-digitalWrite(displaydecena, HIGH);
-desplegarNumero(8);
-desplegarNumero(8);
-desplegarNumero(8);*/
-
 // Esperar a que se abra el monitor serial
   while(! Serial);
 
@@ -111,35 +103,27 @@ desplegarNumero(8);*/
 //******************************************/
 void loop() {
 // put your main code here, to run repeatedly:
-//Para utilizar el rango pedido por el proyecto, se actualizaó la fórmula para sumarle 12 grados que se perdían, 
+//Para utilizar el rango pedido por el proyecto, se actualizó la fórmula para sumarle 12 grados que se perdían, 
 //de acuerdo al termostato del salón de laboratorio.
-int adc = analogRead(LM35PIN);
-float voltaje = adc*(3.3/4095); //Fórmula para cambiar la medida de voltaje a grados C°
+int adc = analogRead(LM35PIN); //Variable para leer el dato proveniente del LM35 a través de su respectivo pin del ESP32
+float voltaje = adc*(3.3/4095); //Fórmula para cambiar la medida de voltaje a grados °C
 LM35 = (voltaje*100) + 12;
-//Bloque para probar el funcionamiento del servo.
-//Se tuvo que conectar por separado a la fuente de voltaje VIN para que funcionara, en lugar de la de 3.3 V.
-/*ledcWrite(pwmS, 103);
-delay(1000);
-
-ledcWrite(pwmS, 307);
-delay(1000);
-
-ledcWrite(pwmS, 512);
-delay(1000);*/
 
 //Ciclo if para introducir las instrucciones de lo que se quiere hacer cada vez que se presione el botón
 if(btn1ON){
   Serial.println(LM35);
-  btn1ON = false;
-  temp = LM35*10;
-  decena = temp/100;
-  temp = temp - (decena*100);
-  unidad = temp/10;
-  temp = temp - (unidad*10);
-  decimal = temp;
-  if(LM35 < 22){ 
-  ledcWrite(pwmB, 2000);
-  ledcWrite(pwmY, 0);
+  btn1ON = false; //Se vuelve a empezar cada vez que se suelte el botón
+  temp = LM35*10; //Se crea nueva función para remover el decimal del float original
+  decena = temp/100; //Se obtiene el entero de la división del temp actual para obtener decenas
+  temp = temp - (decena*100); //Se obtiene un nuevo temp quitándole centenas
+  unidad = temp/10; //Se obtiene el entero de la división del temp actual para obtener unidades
+  temp = temp - (unidad*10); //Se obtiene un nuevo temp solamente con el último dígito de unidad
+  decimal = temp; //El último temp muestra el número decimal de la medida de interés
+
+  //Se tuvo que conectar por separado a la fuente de voltaje VIN para que funcionara, en lugar de la de 3.3 V.
+  if(LM35 < 22){ //Cuando la temperatura medida sea menor que 22 °C
+  ledcWrite(pwmB, 2000); //Se enciende solo el led azúl, como estamos usando una resolución de 12 bits, el valor máximo de iluminación
+  ledcWrite(pwmY, 0); //del led será de 4095, por lo que se usa un valor entre 0 y 4096 para que se ilumine
   ledcWrite(pwmR, 0);
   ledcWrite(pwmS, 103); //Utilizando la frecuencia seleccionada (50), se obtiene el tiempo en ms dividiendo 1/50.
     //Sabiendo que el tiempo es 20 ms, y usando una resolución de 12 bits, se obtiene el ciclo de trabajo para 5 tiempos diferentes.
@@ -147,18 +131,18 @@ if(btn1ON){
     //Para la primera posición se busca la posición a 0.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
 
 }
-if(LM35 > 22 && LM35 < 25){
+if(LM35 > 22 && LM35 < 25){ //Cuando la temperatura medida se encuentre entre 22 y 25 °C
   ledcWrite(pwmB, 0);
-  ledcWrite(pwmY, 2000);
+  ledcWrite(pwmY, 2000); //Se enciende solo el led amarillo
   ledcWrite(pwmR, 0);
   ledcWrite(pwmS, 307);
     //Para la segunda posición se busca la posición a 1.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
 
 }
-if(LM35 > 25){
+if(LM35 > 25){ //Cuando la temperatura medida sea mayor que 25 °C
   ledcWrite(pwmB, 0);
   ledcWrite(pwmY, 0);
-  ledcWrite(pwmR, 2000);
+  ledcWrite(pwmR, 2000); //Se enciende solo el led rojo
   ledcWrite(pwmS, 512);
     //Para la tercera posición se busca la posición a 2.5 ms del servo, por lo que este valor se divide en 0.004882813 ms para obtener el ciclo de trabajo a utilizar.
 
@@ -166,7 +150,7 @@ if(LM35 > 25){
 
 
 
-temperatura = LM35;
+temperatura = LM35; //La variable con el nombre del feed y la lectura que se introducirá al mismo
 
 // guardar el valor obtenido en el feed de adafruit
   Serial.print("sending -> ");
@@ -175,23 +159,23 @@ temperatura = LM35;
 
 
   //No es necesario el delay debido a que se subirá el dato al momento de presionar el botón, no es continuo
-  //delay(500);
   io.run(); //Importante para que se quiera conectar al servidor de adafruit
 
 }
-
+//En cada loop se corre el encendido y apagado de los displays de 7 segmentos a una velocidad lo suficientemente alta para que no
+//se note un parpadeo constante
 digitalWrite(displaydecena, LOW);
 digitalWrite(displayunidad, LOW);
 digitalWrite(displaydecimal, HIGH);
-desplegarNumero(decimal);
-desplegarPunto(0);
-delay(5);
+desplegarNumero(decimal); //Función de la librería de display7.h para denominar el dígito para el display
+desplegarPunto(0); //Función de la librería de display7.h para señalar que no debe encenderse el punto decimal del display
+delay(5); //Delay lo suficientemente visible y rápido
 
 digitalWrite(displaydecena, LOW);
 digitalWrite(displayunidad, HIGH);
 digitalWrite(displaydecimal, LOW);
 desplegarNumero(unidad);
-desplegarPunto(1);
+desplegarPunto(1); //Función de la librería de display7.h para señalar que debe encenderse el punto decimal del display
 delay(5);
 
 digitalWrite(displaydecena, HIGH);
@@ -207,17 +191,16 @@ delay(5);
 // Otras funciones
 //******************************************/
 
-//Se quitó la función de getTemp porque se quiere que la variable "LM35" esté presente para el programa constantemente, no solo cuando se imprime.
 void initBTN1(void){
-  //Funciones para denominar a los botones con su tipo de entrada y su interruptor.
-  pinMode(BTN1, INPUT_PULLUP);
+  //Funciones para denominar a los botones con su tipo de entrada y su interrupción.
+  pinMode(BTN1, INPUT_PULLUP); //Se señala que el botón el pullup porque una terminal se conecta a su pin y la otra a tierra.
   attachInterrupt(BTN1, &BTN1_ISR, FALLING); //Se indica el pin del botón, su función de interrupción y el tipo de señal donde se interrumpe.
 }
 //Funciones para generar los PWMs
 void initPWMB(void){
-  ledcSetup(pwmB, freqPWM, resPWM);
-  ledcAttachPin(LEDB, pwmB);
-  ledcWrite(pwmB, 0);
+  ledcSetup(pwmB, freqPWM, resPWM); //Setup del pwm con la frecuencia y la resolución indicada
+  ledcAttachPin(LEDB, pwmB); //Unir el pin al pwm
+  ledcWrite(pwmB, 0); //Valor inicial del ciclo de trabajo
 }
 void initPWMY(void){
   ledcSetup(pwmY, freqPWM, resPWM);
